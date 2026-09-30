@@ -1,0 +1,6 @@
+{
+  "name": "MahaVyapaar (महाव्यापार) — Digital Dukaan Setu",
+  "description": "महाराष्ट्र स्थानिक व्यापार डिजिटल सबलीकरण मंच | MahaVyapaar Digital Solutions Private Limited - Corporate digital packages and on-site Digital Mitra field assistance for Maharashtra street vendors & kirana stores",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

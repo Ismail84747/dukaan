@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #FAF5EC;
+    color: #2A1608;
+  }
+}
+
+.font-marathi {
+  font-family: 'Noto Sans Devanagari', 'Tiro Devanagari Marathi', sans-serif;
+}
+
+.font-heading {
+  font-family: 'Rozha One', 'Tiro Devanagari Marathi', serif;
+}
+
+/* Authentic Maharashtrian Paithani & Zari Motifs */
+.bg-bhagwa {
+  background: linear-gradient(135deg, #EA580C 0%, #D97706 50%, #C2410C 100%);
+}
+
+.bg-maratha-maroon {
+  background: linear-gradient(135deg, #4A0E17 0%, #6B1D2F 50%, #3B1C10 100%);
+}
+
+.bg-peshwai-gold {
+  background: linear-gradient(135deg, #F59E0B 0%, #EAB308 50%, #D97706 100%);
+}
+
+.bg-sand-warm {
+  background-color: #FDF8EE;
+}
+
+.bg-haldi-parchment {
+  background-color: #FAF2DF;
+}
+
+.border-zari-gold {
+  border-color: #D97706;
+  box-shadow: 0 0 0 1px #FBBF24 inset;
+}
+
+.paithani-pattern {
+  background-color: #4A0E17;
+  background-image: radial-gradient(#F59E0B 0.75px, transparent 0.75px), radial-gradient(#F59E0B 0.75px, #4A0E17 0.75px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 12px rgba(234, 88, 12, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+
+.mic-recording {
+  animation: pulse-ring 1.5s infinite cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+@media print {
+  body {
+    background: #FAF8F2 !important;
+    color: #2A1608 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
