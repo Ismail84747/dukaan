@@ -253,6 +253,13 @@ export const App: React.FC = () => {
           lang={lang}
           initialVendor={trackerVendor}
           initialQuery={trackerQuery}
+          isAdmin={isAdminAuthenticated}
+          onVendorUpdated={(updated) => {
+            fetchVendors();
+            if (trackerVendor?.id === updated.id) {
+              setTrackerVendor(updated);
+            }
+          }}
           onClose={() => {
             setIsTrackerOpen(false);
             setTrackerVendor(null);

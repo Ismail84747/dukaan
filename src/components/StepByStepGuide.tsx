@@ -35,8 +35,8 @@ export const StepByStepGuide: React.FC<StepByStepGuideProps> = ({ lang }) => {
       desc: t.step2Desc,
       color: 'from-[#D97706] to-[#B45309]',
       badge: `${t.stepNumberLabel} ${getStepNumber(1)}`,
-      image: 'https://images.unsplash.com/photo-1556745757-8d76bdb6984b?auto=format&fit=crop&w=500&q=80',
-      imageAlt: 'Setu Mitra Officer Verification',
+      image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=500&q=80',
+      imageAlt: 'Official Onboarding Verification & Registration',
     },
     {
       icon: MapPin,

@@ -13,10 +13,20 @@ import {
   RefreshCw,
   X,
   ShieldCheck,
+  Download,
+  Check,
+  Loader2,
+  Award,
+  FileCheck,
+  Lock,
+  ArrowRight,
+  CheckCircle,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Language, Vendor, OnboardingStage } from '../types';
-import { getVendorStage, searchVendorByQuery, getAllVendors } from '../db/indexedDB';
+import { getVendorStage, searchVendorByQuery, getAllVendors, updateVendorStage } from '../db/indexedDB';
 import { IndianFlag } from './IndianFlag';
+import { generateCompletionPdf } from '../utils/generateCompletionPdf';
 
 interface StatusTrackerModalProps {
   lang: Language;
@@ -24,6 +34,8 @@ interface StatusTrackerModalProps {
   initialVendor?: Vendor | null;
   onClose: () => void;
   onOpenCertificateModal: (vendor: Vendor, tab: 'receipt' | 'shoplink' | 'standee' | 'status') => void;
+  isAdmin?: boolean;
+  onVendorUpdated?: (updated: Vendor) => void;
 }
 
 export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
@@ -32,12 +44,30 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
   initialVendor = null,
   onClose,
   onOpenCertificateModal,
+  isAdmin = false,
+  onVendorUpdated,
 }) => {
   const [searchQuery, setSearchQuery] = useState(initialVendor?.phone || initialVendor?.regNumber || initialQuery);
   const [activeVendor, setActiveVendor] = useState<Vendor | null>(initialVendor);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [recentVendors, setRecentVendors] = useState<Vendor[]>([]);
+
+  // Admin Direct Login & Power State
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return isAdmin || sessionStorage.getItem('mahavypaar_admin_authenticated') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [showAdminLoginBox, setShowAdminLoginBox] = useState(false);
+  const [adminIdInput, setAdminIdInput] = useState('');
+  const [adminPassInput, setAdminPassInput] = useState('');
+  const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
+  const [isUpdatingStage, setIsUpdatingStage] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [completionNotice, setCompletionNotice] = useState<string | null>(null);
 
   // Load recent vendors for quick selection
   useEffect(() => {
@@ -101,10 +131,114 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
       const updated = list.find((v) => v.id === activeVendor.id);
       if (updated) {
         setActiveVendor(updated);
+        if (onVendorUpdated) onVendorUpdated(updated);
       }
     } catch (err) {
       console.error('Refresh error:', err);
     }
+  };
+
+  const handleDirectAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoginError(null);
+    const cleanId = adminIdInput.trim().toLowerCase();
+    const cleanPass = adminPassInput.trim();
+
+    // Flexible matching for admin credentials
+    const validIds = ['is', 'admin', 'admin name', 'is1590174', 'is1590174@gmail.com', 'ismail', 'faraz'];
+    const isIdValid = validIds.includes(cleanId) || cleanId.startsWith('admin') || cleanId.startsWith('is');
+    const validPasswords = ['123', 'password 123', 'password123', 'pass 123', 'admin 123', 'admin123', '1234'];
+    const isPassValid = validPasswords.includes(cleanPass) || cleanPass.endsWith('123');
+
+    if (isIdValid && isPassValid) {
+      try {
+        sessionStorage.setItem('mahavypaar_admin_authenticated', 'true');
+        sessionStorage.setItem('mahavypaar_admin_user', cleanId || 'is');
+      } catch {}
+      setIsAdminAuthenticated(true);
+      setShowAdminLoginBox(false);
+      setAdminIdInput('');
+      setAdminPassInput('');
+    } else {
+      setAdminLoginError(
+        lang === 'mr'
+          ? 'अवैध ॲडमिन क्रेडेंशियल्स (ID: is / admin, Password: 123)'
+          : lang === 'hi'
+          ? 'अमान्य एडमिन क्रेडेंशियल्स (ID: is / admin, Password: 123)'
+          : 'Invalid admin credentials (ID: is / admin, Password: 123)'
+      );
+    }
+  };
+
+  const handleDownloadCompletionPdf = async (vendorToUse?: Vendor) => {
+    const v = vendorToUse || activeVendor;
+    if (!v) return;
+    setIsGeneratingPdf(true);
+    try {
+      await generateCompletionPdf(v, lang);
+    } catch (err) {
+      console.error('Error generating completion PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleAdvanceStage = async (targetStage?: OnboardingStage) => {
+    if (!activeVendor || isUpdatingStage) return;
+    setIsUpdatingStage(true);
+    setCompletionNotice(null);
+
+    const nextStage = targetStage || (
+      currentStage === 'submitted' ? 'doc_verification' :
+      currentStage === 'doc_verification' ? 'kit_preparation' :
+      'completed'
+    );
+
+    try {
+      const updated = await updateVendorStage(
+        activeVendor.id,
+        nextStage,
+        nextStage === 'completed'
+          ? 'डिजिटल किट वितरण व Google Business ऑनबोर्डिंग १००% यशस्वीरीत्या पूर्ण झाले.'
+          : undefined
+      );
+
+      if (updated) {
+        setActiveVendor(updated);
+        if (onVendorUpdated) onVendorUpdated(updated);
+
+        if (nextStage === 'completed') {
+          // Celebration confetti
+          try {
+            confetti({
+              particleCount: 110,
+              spread: 85,
+              origin: { y: 0.6 },
+              colors: ['#ea580c', '#f59e0b', '#7c2d12', '#10b981'],
+            });
+          } catch {}
+
+          setCompletionNotice(
+            lang === 'mr'
+              ? '✓ ऑनबोर्डिंग १००% यशस्वीरीत्या पूर्ण झाले! पूर्तता प्रमाणपत्र PDF तयार होत आहे...'
+              : lang === 'hi'
+              ? '✓ ऑनबोर्डिंग १००% सफलतापूर्वक पूर्ण हुआ! पूर्णता प्रमाण-पत्र PDF तैयार हो रहा है...'
+              : '✓ Onboarding 100% completed! Generating completion certificate PDF...'
+          );
+
+          // Automatically trigger download of completion PDF
+          await handleDownloadCompletionPdf(updated);
+        }
+      }
+    } catch (err) {
+      console.error('Error updating stage:', err);
+    } finally {
+      setIsUpdatingStage(false);
+    }
+  };
+
+  const handleFinishOnboarding = async () => {
+    await handleAdvanceStage('completed');
   };
 
   const stageOrder: OnboardingStage[] = ['submitted', 'doc_verification', 'kit_preparation', 'completed'];
@@ -138,6 +272,14 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
       progressTitle: 'ऑनबोर्डिंग टप्पे व प्रगती',
       viewReceipt: 'पावती पहा (Slip)',
       viewStandee: '५★ स्टँडी पहा',
+      adminModeActive: 'ॲडमिन नियंत्रण कक्ष (Admin Mode)',
+      adminUnlockBtn: 'ॲडमिन लॉगिन / टप्पा पुढे न्या',
+      advanceNextStage: 'पुढील टप्प्यावर जा ➔',
+      finishOnboarding: '⚡ ऑनबोर्डिंग पूर्ण करा (Finish & PDF)',
+      downloadCompletionPdf: 'पूर्तता प्रमाणपत्र PDF डाऊनलोड करा',
+      completionPdfBtn: 'पूर्तता PDF (Certificate)',
+      completedBadge: '✓ १००% ऑनबोर्डिंग पूर्ण व किट वाटप संपन्न',
+      completionSuccess: 'अभिनंदन! या दुकानाचे डिजिटल ऑनबोर्डिंग १००% यशस्वीरीत्या पूर्ण झाले आहे.',
       stages: {
         submitted: {
           title: 'अर्ज नोंदणी प्राप्त (Application Received)',
@@ -177,6 +319,14 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
       progressTitle: 'ऑनबोर्डिंग चरण व प्रगति',
       viewReceipt: 'रसीद देखें (Slip)',
       viewStandee: '५★ स्टेंडी देखें',
+      adminModeActive: 'एडमिन नियंत्रण कक्ष (Admin Mode)',
+      adminUnlockBtn: 'एडमिन लॉगिन / चरण आगे बढ़ाएं',
+      advanceNextStage: 'अगले चरण पर बढ़ें ➔',
+      finishOnboarding: '⚡ ऑनबोर्डिंग पूर्ण करें (Finish & PDF)',
+      downloadCompletionPdf: 'पूर्णता प्रमाण-पत्र PDF डाउनलोड करें',
+      completionPdfBtn: 'पूर्णता PDF (Certificate)',
+      completedBadge: '✓ १००% ऑनबोर्डिंग पूर्ण व किट वितरण संपन्न',
+      completionSuccess: 'बधाई! इस दुकान का डिजिटल ऑनबोर्डिंग १००% सफलतापूर्वक पूर्ण हो चुका है।',
       stages: {
         submitted: {
           title: 'आवेदन प्राप्त (Application Received)',
@@ -216,6 +366,14 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
       progressTitle: 'Onboarding Milestones & Progress',
       viewReceipt: 'View Slip',
       viewStandee: 'View 5★ Standee',
+      adminModeActive: 'Admin Control Center (Active)',
+      adminUnlockBtn: 'Admin Login / Advance Track',
+      advanceNextStage: 'Advance Next Stage ➔',
+      finishOnboarding: '⚡ Finish Onboarding (Finish & PDF)',
+      downloadCompletionPdf: 'Download Completion Certificate PDF',
+      completionPdfBtn: 'Completion PDF',
+      completedBadge: '✓ 100% Onboarding Completed & Dispatched',
+      completionSuccess: 'Congratulations! Merchant onboarding is 100% complete.',
       stages: {
         submitted: {
           title: 'Application Received',
@@ -273,6 +431,34 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Admin Toggle / Status Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isAdminAuthenticated) {
+                  setShowAdminLoginBox((prev) => !prev);
+                }
+              }}
+              title={isAdminAuthenticated ? 'Admin Mode Active' : 'Admin Login to Advance Track'}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border ${
+                isAdminAuthenticated
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                  : 'bg-[#3B1C10] text-amber-200 border-amber-600/50 hover:bg-amber-900'
+              }`}
+            >
+              {isAdminAuthenticated ? (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Admin Active</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Admin Login</span>
+                </>
+              )}
+            </button>
+
             {activeVendor && (
               <button
                 type="button"
@@ -295,6 +481,74 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto space-y-6">
+          {/* Direct Admin Login Drawer (if requested and not authenticated) */}
+          {showAdminLoginBox && !isAdminAuthenticated && (
+            <div className="bg-gradient-to-r from-[#4A0E17] to-[#2B0E14] text-white p-4 rounded-xl border-2 border-amber-400 shadow-lg space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-amber-950 flex items-center justify-center font-black">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-100 font-heading">
+                      {lang === 'mr'
+                        ? 'प्रशासक थेट लॉगिन (Admin Direct Login to Advance Tracker)'
+                        : lang === 'hi'
+                        ? 'प्रशासक सीधा लॉगिन (Admin Direct Login to Advance Tracker)'
+                        : 'Admin Direct Login to Advance Tracker'}
+                    </h4>
+                    <p className="text-[10px] text-amber-200/80">
+                      {lang === 'mr'
+                        ? 'थेट येथून ऑनबोर्डिंग टप्पे पुढे नेण्यासाठी व पूर्ण करण्यासाठी लॉगिन करा'
+                        : lang === 'hi'
+                        ? 'सीधे यहां से ऑनबोर्डिंग चरण आगे बढ़ाने व पूर्ण करने हेतु लॉगिन करें'
+                        : 'Login to advance milestones and finish onboarding directly'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdminLoginBox(false)}
+                  className="text-amber-300 hover:text-white text-xs cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleDirectAdminLogin} className="flex flex-wrap items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Admin ID (is / admin)"
+                  value={adminIdInput}
+                  onChange={(e) => setAdminIdInput(e.target.value)}
+                  className="flex-1 min-w-[120px] px-3 py-1.5 text-xs rounded-lg bg-[#3B1C10] border border-amber-400/60 text-amber-100 placeholder:text-amber-300/40 focus:outline-hidden font-bold"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Password (123)"
+                  value={adminPassInput}
+                  onChange={(e) => setAdminPassInput(e.target.value)}
+                  className="flex-1 min-w-[100px] px-3 py-1.5 text-xs rounded-lg bg-[#3B1C10] border border-amber-400/60 text-amber-100 placeholder:text-amber-300/40 focus:outline-hidden font-bold"
+                />
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-[#EA580C] text-amber-950 font-black text-xs rounded-lg shadow-sm border border-amber-300 hover:from-amber-400 hover:to-amber-500 cursor-pointer shrink-0"
+                >
+                  {lang === 'mr' ? 'अनलॉक करा' : lang === 'hi' ? 'अनलॉक करें' : 'Unlock Admin'}
+                </button>
+              </form>
+
+              {adminLoginError && (
+                <p className="text-[11px] text-rose-300 font-bold bg-rose-950/60 p-2 rounded border border-rose-600/50">
+                  {adminLoginError}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Lookup Input Form */}
           <form
             onSubmit={handleSearch}
@@ -329,43 +583,58 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
 
             {/* Quick switcher buttons if recent registered vendors exist */}
             {recentVendors.length > 0 && (
-              <div className="mt-3 pt-2.5 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-[#7C2D12] font-bold">{t.recentVendors}</span>
-                {recentVendors.map((rv) => (
+              <div className="mt-3 pt-2.5 border-t border-amber-200/70 flex flex-wrap items-center gap-1.5 text-xs text-[#7C2D12]">
+                <span className="font-bold text-[11px]">{t.recentVendors}</span>
+                {recentVendors.map((v) => (
                   <button
-                    key={rv.id}
+                    key={v.id}
                     type="button"
                     onClick={() => {
-                      setActiveVendor(rv);
-                      setSearchQuery(rv.phone);
+                      setActiveVendor(v);
+                      setSearchQuery(v.phone);
+                      setSearchError(null);
                     }}
-                    className={`px-2 py-0.5 rounded-md border text-[11px] font-bold cursor-pointer transition ${
-                      activeVendor?.id === rv.id
-                        ? 'bg-[#4A0E17] text-amber-200 border-amber-700'
-                        : 'bg-amber-100 text-[#4A0E17] hover:bg-amber-200 border-amber-300'
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition cursor-pointer ${
+                      activeVendor?.id === v.id
+                        ? 'bg-[#EA580C] text-white border-[#EA580C]'
+                        : 'bg-amber-100/60 hover:bg-amber-200 text-[#4A0E17] border-amber-300'
                     }`}
                   >
-                    {rv.shopName} ({rv.phone})
+                    {v.shopName}
                   </button>
                 ))}
               </div>
             )}
           </form>
 
+          {/* Active Vendor Detail Card and Stepper */}
           {activeVendor ? (
             <div className="space-y-6">
-              {/* Active Vendor Summary Card */}
-              <div className="bg-[#FFFDF7] rounded-xl p-4 sm:p-5 border-2 border-amber-300 shadow-sm">
+              {/* Notice Banner when completed */}
+              {completionNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-sm animate-in fade-in">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{completionNotice}</span>
+                </div>
+              )}
+
+              {/* Merchant Details Bar */}
+              <div className="bg-[#FFFDF7] rounded-xl p-4 sm:p-5 border-2 border-amber-800/20 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-[#4A0E17] border border-amber-300 text-xs font-black mb-1">
-                      <Store className="w-3.5 h-3.5 text-[#EA580C]" />
-                      <span>{activeVendor.shopName}</span>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold mb-1">
+                      <Store className="w-3.5 h-3.5" />
+                      <span>{activeVendor.category.toUpperCase()}</span>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-extrabold text-[#4A0E17] font-heading">
-                      {activeVendor.ownerName}
+                    <h3 className="text-xl sm:text-2xl font-black text-[#4A0E17] font-heading">
+                      {activeVendor.shopName}
                     </h3>
-                    <p className="text-xs text-[#5C2B14] flex items-center gap-1 mt-0.5 font-medium">
+                    <p className="text-xs text-[#5C2B14] font-semibold mt-0.5 flex items-center gap-1">
+                      <span>{activeVendor.ownerName}</span>
+                      <span>•</span>
+                      <span className="font-mono">{activeVendor.phone}</span>
+                    </p>
+                    <p className="text-[11px] text-[#7C2D12] mt-1 flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-[#EA580C]" />
                       <span>
                         {activeVendor.area}, {activeVendor.district} - {activeVendor.pincode}
@@ -381,7 +650,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                       {activeVendor.regNumber}
                     </span>
                     <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                      {new Date(activeVendor.createdAt).toLocaleString(
+                      {new Date(activeVendor.createdAt || Date.now()).toLocaleString(
                         lang === 'mr' ? 'mr-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN'
                       )}
                     </span>
@@ -406,11 +675,150 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                 </div>
               </div>
 
+              {/* Admin Direct Power Panel (Active when Admin Authenticated) */}
+              {isAdminAuthenticated && (
+                <div className="bg-gradient-to-r from-[#4A0E17] via-[#3B1C10] to-[#2B0E14] text-amber-100 p-4 sm:p-5 rounded-2xl border-2 border-amber-400 shadow-lg flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/50 flex items-center justify-center font-black shrink-0">
+                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-amber-200 flex items-center gap-1.5">
+                        <span>{t.adminModeActive}</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      </div>
+                      <div className="text-[11px] text-amber-300/90 font-medium">
+                        {lang === 'mr'
+                          ? `सध्याचा टप्पा: ${t.stages[currentStage].title.split('(')[0]}`
+                          : lang === 'hi'
+                          ? `वर्तमान चरण: ${t.stages[currentStage].title.split('(')[0]}`
+                          : `Current Stage: ${t.stages[currentStage].title.split('(')[0]}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {currentStage !== 'completed' && (
+                      <button
+                        type="button"
+                        disabled={isUpdatingStage}
+                        onClick={() => handleAdvanceStage()}
+                        className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50 border border-amber-300"
+                      >
+                        {isUpdatingStage ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        )}
+                        <span>{t.advanceNextStage}</span>
+                      </button>
+                    )}
+
+                    {/* Finish Onboarding Button */}
+                    <button
+                      type="button"
+                      disabled={isUpdatingStage || isGeneratingPdf}
+                      onClick={handleFinishOnboarding}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-md border border-emerald-300 active:scale-95 disabled:opacity-50"
+                    >
+                      {isUpdatingStage || isGeneratingPdf ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      <span>
+                        {currentStage === 'completed'
+                          ? (isGeneratingPdf ? 'PDF तयार होत आहे...' : t.downloadCompletionPdf)
+                          : t.finishOnboarding}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Inline Prompt for Non-Admin to Unlock Admin Mode */}
+              {!isAdminAuthenticated && (
+                <div className="bg-amber-100/70 border border-amber-300 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-[#7C2D12]">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#EA580C]" />
+                    <span className="font-bold">
+                      {lang === 'mr'
+                        ? 'प्रशासक आहात का? टप्पे पुढे नेण्यासाठी व पूर्ण करण्यासाठी लॉगिन करा'
+                        : lang === 'hi'
+                        ? 'प्रशासक हैं? चरण आगे बढ़ाने व पूर्ण करने हेतु लॉगिन करें'
+                        : 'Are you an admin? Login to proceed milestones & finish'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminLoginBox(true)}
+                    className="px-3 py-1 rounded-lg bg-[#4A0E17] hover:bg-[#3B1C10] text-amber-200 font-extrabold text-xs flex items-center gap-1 transition cursor-pointer shrink-0 border border-amber-600/50"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{t.adminUnlockBtn}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 100% Completion Celebration Banner & PDF Download Card */}
+              {currentStage === 'completed' && (
+                <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-[#1B4332] text-white p-4 sm:p-5 rounded-2xl border-2 border-emerald-400 shadow-xl space-y-3 animate-in zoom-in-95 duration-300">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 flex items-center justify-center font-black shrink-0">
+                        <Award className="w-6 h-6 text-amber-300" />
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/40 text-[10px] font-black uppercase">
+                          <CheckCircle className="w-3 h-3 text-emerald-300" />
+                          <span>{t.completedBadge}</span>
+                        </div>
+                        <h4 className="text-sm sm:text-base font-black text-amber-100 font-heading">
+                          {t.completionSuccess}
+                        </h4>
+                        <p className="text-[11px] text-emerald-200/90 font-medium">
+                          {lang === 'mr'
+                            ? 'Google Maps पिन, ५-स्टार ॲक्रेलिक स्टँडी व व्हॉईस साऊंडबॉक्स वाटप १००% पूर्ण झाले आहे.'
+                            : lang === 'hi'
+                            ? 'Google Maps पिन, ५-स्टार एक्रेलिक स्टेंडी व वॉइस साउंडबॉक्स आवंटन १००% पूर्ण हो चुका है।'
+                            : 'Google Maps pin, 5-Star acrylic standee and voice soundbox setup 100% completed.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isGeneratingPdf}
+                      onClick={() => handleDownloadCompletionPdf()}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#EA580C] hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg border border-amber-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      {isGeneratingPdf ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-950" />
+                      ) : (
+                        <Download className="w-4 h-4 text-amber-950" />
+                      )}
+                      <span>
+                        {isGeneratingPdf
+                          ? (lang === 'mr' ? 'PDF तयार होत आहे...' : 'Generating PDF...')
+                          : t.downloadCompletionPdf}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* 4 Real-Time Onboarding Stages Stepper */}
               <div className="bg-[#FFFDF7] rounded-xl p-4 sm:p-6 border-2 border-amber-800/15 shadow-sm space-y-4">
-                <h4 className="text-sm font-black text-[#4A0E17] uppercase tracking-wide border-b border-amber-200 pb-2">
-                  {t.progressTitle}
-                </h4>
+                <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                  <h4 className="text-sm font-black text-[#4A0E17] uppercase tracking-wide">
+                    {t.progressTitle}
+                  </h4>
+                  {isAdminAuthenticated && (
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                      ✓ Admin Click-to-Advance Active
+                    </span>
+                  )}
+                </div>
 
                 <div className="space-y-4">
                   {stageOrder.map((stageKey, idx) => {
@@ -471,21 +879,55 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                               {stageInfo.title}
                             </h5>
 
-                            <span
-                              className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                status === 'done'
-                                  ? 'bg-emerald-200 text-emerald-900'
+                            <div className="flex items-center gap-1.5">
+                              {/* Admin Direct Stage Advance Action */}
+                              {isAdminAuthenticated && status !== 'done' && (
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingStage}
+                                  onClick={() => {
+                                    if (stageKey === 'completed') {
+                                      handleFinishOnboarding();
+                                    } else {
+                                      handleAdvanceStage(stageKey);
+                                    }
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-black transition cursor-pointer flex items-center gap-1 shadow-xs border ${
+                                    stageKey === 'completed'
+                                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white border-emerald-300'
+                                      : 'bg-amber-200 hover:bg-amber-300 text-[#4A0E17] border-amber-400'
+                                  }`}
+                                >
+                                  {stageKey === 'completed' ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3" />
+                                      <span>{lang === 'mr' ? 'पूर्ण करा (Finish)' : 'Finish'}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check className="w-3 h-3" />
+                                      <span>{lang === 'mr' ? 'हा टप्पा करा' : 'Mark Step'}</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+
+                              <span
+                                className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                  status === 'done'
+                                    ? 'bg-emerald-200 text-emerald-900'
+                                    : status === 'active'
+                                    ? 'bg-amber-200 text-[#4A0E17] border border-amber-400'
+                                    : 'bg-slate-200 text-slate-700'
+                                }`}
+                              >
+                                {status === 'done'
+                                  ? '✓ पूर्ण'
                                   : status === 'active'
-                                  ? 'bg-amber-200 text-[#4A0E17] border border-amber-400'
-                                  : 'bg-slate-200 text-slate-700'
-                              }`}
-                            >
-                              {status === 'done'
-                                ? '✓ पूर्ण'
-                                : status === 'active'
-                                ? 'प्रक्रियेत (In Progress)'
-                                : 'प्रलंबित (Pending)'}
-                            </span>
+                                  ? 'प्रक्रियेत (In Progress)'
+                                  : 'प्रलंबित (Pending)'}
+                              </span>
+                            </div>
                           </div>
 
                           <p className="text-xs text-[#5C2B14] font-medium leading-relaxed">
@@ -555,6 +997,23 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
 
               {/* Action Buttons to View Documents */}
               <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 pt-2">
+                {/* Completion PDF button if completed */}
+                {currentStage === 'completed' && (
+                  <button
+                    type="button"
+                    disabled={isGeneratingPdf}
+                    onClick={() => handleDownloadCompletionPdf()}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold text-xs flex items-center gap-1.5 border border-emerald-300 shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {isGeneratingPdf ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileCheck className="w-3.5 h-3.5 text-white" />
+                    )}
+                    <span>{t.completionPdfBtn}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {

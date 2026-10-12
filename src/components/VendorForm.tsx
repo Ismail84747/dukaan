@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic, MicOff, CheckCircle, Store, User, Phone, MapPin, Tag, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Mic, MicOff, CheckCircle, Store, User, Phone, MapPin, Tag, ShieldCheck, ArrowRight, UserCheck, QrCode } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Language, PackageId, BusinessCategory, Vendor } from '../types';
 import { translations, districtsList } from '../translations';
@@ -464,14 +464,9 @@ export const VendorForm: React.FC<VendorFormProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-white border border-amber-200/80">
-                  <div className="w-16 h-16 rounded-md overflow-hidden shrink-0 bg-amber-100">
-                    <img
-                      src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=300&q=80"
-                      alt="Field Officer Verification"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-amber-200/80 shadow-2xs">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EA580C] to-[#D97706] text-amber-950 flex items-center justify-center shrink-0 border border-amber-300 shadow-2xs">
+                    <UserCheck className="w-6 h-6 text-amber-950" />
                   </div>
                   <div className="text-[11px] text-[#5C2B14] leading-snug">
                     <strong className="block text-[#4A0E17] font-black">
@@ -491,14 +486,9 @@ export const VendorForm: React.FC<VendorFormProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-white border border-amber-200/80">
-                  <div className="w-16 h-16 rounded-md overflow-hidden shrink-0 bg-amber-100">
-                    <img
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80"
-                      alt="Merchant Receiving Kit"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-amber-200/80 shadow-2xs">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4A0E17] to-[#7C2D12] text-amber-200 flex items-center justify-center shrink-0 border border-amber-500/50 shadow-2xs">
+                    <QrCode className="w-6 h-6 text-amber-300" />
                   </div>
                   <div className="text-[11px] text-[#5C2B14] leading-snug">
                     <strong className="block text-[#4A0E17] font-black">

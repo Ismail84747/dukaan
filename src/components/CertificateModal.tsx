@@ -655,16 +655,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 <div className="bg-gradient-to-r from-[#4A0E17] to-[#2B0E14] text-white p-5 rounded-2xl border-2 border-amber-400 shadow-lg relative overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-3.5">
-                      <img
-                        src={
-                          assignedOfficer === 'Ismail'
-                            ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
-                            : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
-                        }
-                        alt={formatOfficerName(assignedOfficer, lang)}
-                        className="w-14 h-14 rounded-xl object-cover border-2 border-amber-400 shadow-md shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#EA580C] to-[#D97706] text-amber-950 flex items-center justify-center font-black border-2 border-amber-300 shadow-md shrink-0">
+                        <UserCheck className="w-7 h-7 text-amber-950" />
+                      </div>
                       <div className="space-y-1">
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/50 text-[11px] font-black">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -974,17 +967,26 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 <div className="text-[11px] font-black text-[#7C2D12] mb-1.5 text-center">
                   {labels.standeeSetupPreview}
                 </div>
-                <div className="rounded-xl overflow-hidden border-2 border-amber-400 shadow-sm relative h-36 bg-amber-950 group">
-                  <img
-                    src="https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=600&q=80"
-                    alt="Realistic Acrylic Counter Display"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
-                    <span className="text-[11px] text-amber-200 font-bold">
+                <div className="rounded-xl overflow-hidden border-2 border-amber-400 shadow-sm relative p-4 bg-gradient-to-br from-[#4A0E17] via-[#3A0B12] to-[#2B0E14] text-amber-100 flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <div className="text-xs font-black text-amber-100">
                       ✓ 5★ Google Review NFC + QR Acrylic Counter Unit
-                    </span>
+                    </div>
+                    <div className="text-[10px] text-amber-300/80">
+                      {lang === 'mr'
+                        ? 'काऊंटरवर सहज ठेवता येणारी वॉटरप्रूफ ॲक्रेलिक स्टँडी • थेट ग्राहकांकडून रिव्ह्यू'
+                        : lang === 'hi'
+                        ? 'काउंटर पर रखी जाने वाली वॉटरप्रूफ एक्रेलिक स्टेंडी • सीधे ग्राहकों से रिव्यू'
+                        : 'Waterproof counter acrylic unit with NFC chip & QR code for instant 5-star Google reviews'}
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                    <QrCode className="w-6 h-6 text-amber-300" />
                   </div>
                 </div>
               </div>

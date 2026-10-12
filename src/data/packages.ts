@@ -98,7 +98,7 @@ export const growthPackages: GrowthPackage[] = [
       hi: 'प्रगति सेतु पैकेज: सबसे लोकप्रिय! ₹७९ में Google Maps, ५-स्टार रिव्यू स्टेंडी, और साउंडबॉक्स सहायता। ९२ प्रतिशत सीधी कंपनी छूट।',
       en: 'Pragati Growth Setu at 79 rupees: includes Google Maps, 5-Star counter standee, and Soundbox support with 92 percent company discount by MahaVyapaar Digital Solutions Pvt. Ltd.',
     },
-    image: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=600&q=80',
     imageCaption: {
       mr: 'किराणा व चहा दुकान: ५-स्टार ॲक्रेलिक स्टँडी व व्हॉईस साऊंडबॉक्स',
       hi: 'किराना व चाय दुकान: ५-स्टार एक्रेलिक स्टेंडी व वॉइस साउंडबॉक्स',
