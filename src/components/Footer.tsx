@@ -123,36 +123,67 @@ export const Footer: React.FC<FooterProps> = ({ lang }) => {
             <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 font-heading">
               {t.footerHelplineTitle}
             </h4>
-            <div className="p-3.5 rounded-xl bg-[#2A1608] border border-amber-800/60 space-y-2 text-xs text-amber-200 font-medium">
-              <div>
-                <span className="text-[10px] text-amber-400 font-bold uppercase block">
-                  {t.footerOfficerRole}
-                </span>
-                <span className="text-sm font-extrabold text-amber-100 block">
-                  इस्माईल / फराझ (Ismail / Faraz)
-                </span>
+            <div className="p-3.5 rounded-xl bg-[#2A1608] border border-amber-800/60 space-y-3 text-xs text-amber-200 font-medium">
+              <span className="text-[10px] text-amber-400 font-bold uppercase block">
+                {t.footerOfficerRole}
+              </span>
+
+              {/* Ismail */}
+              <div className="pb-2.5 border-b border-amber-800/60 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-100 flex items-center gap-1.5">
+                    <PhoneCall className="w-3.5 h-3.5 text-[#EA580C]" />
+                    <span>इस्माईल (Ismail)</span>
+                  </span>
+                  <a href="tel:9137786506" className="text-amber-300 hover:text-amber-100 font-mono font-bold text-xs underline">
+                    +91 9137786506
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <a
+                    href="https://wa.me/919137786506?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%87%E0%A4%B8%E0%A5%8D%E0%A4%AE%E0%A4%BE%E0%A4%88%E0%A4%B2%20%E0%A4%B8%E0%A4%B0%2C%20%E0%A4%AE%E0%A4%B9%E0%A4%BE%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%AA%E0%A4%BE%E0%A4%B0%20%E0%A4%A1%E0%A4%BF%E0%A4%9C%E0%A4%BF%E0%A4%9F%E0%A4%B2%20%E0%A4%B8%E0%A5%87%E0%A4%A4%E0%A5%82%20%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%B6%E0%A4%A8%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%A0%E0%A5%80%20%E0%A4%B8%E0%A4%82%E0%A4%AA%E0%A4%B0%E0%A5%8D%E0%A4%95"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-black transition"
+                  >
+                    {t.footerWhatsAppBtn}
+                  </a>
+                  <a
+                    href="tel:9137786506"
+                    className="flex-1 text-center py-1 rounded bg-amber-600 hover:bg-amber-500 text-amber-950 text-[10px] font-black transition"
+                  >
+                    {t.footerCallBtn}
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-                <PhoneCall className="w-4 h-4 text-[#EA580C]" />
-                <a href="tel:9137786506" className="hover:text-amber-100 underline font-mono text-sm">
-                  +91 9137786506
-                </a>
-              </div>
-              <div className="pt-1 flex gap-2">
-                <a
-                  href="https://wa.me/919137786506?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%2C%20%E0%A4%AE%E0%A4%B9%E0%A4%BE%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%AA%E0%A4%BE%E0%A4%B0%20%E0%A4%A1%E0%A4%BF%E0%A4%9C%E0%A4%BF%E0%A4%9F%E0%A4%B2%20%E0%A4%B8%E0%A5%87%E0%A4%A4%E0%A5%82%20%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%B6%E0%A4%A8%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%A0%E0%A5%80%20%E0%A4%B8%E0%A4%82%E0%A4%AA%E0%A4%B0%E0%A5%8D%E0%A4%95"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-black inline-block transition"
-                >
-                  {t.footerWhatsAppBtn}
-                </a>
-                <a
-                  href="tel:9137786506"
-                  className="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-amber-950 text-[10px] font-black inline-block transition"
-                >
-                  {t.footerCallBtn}
-                </a>
+
+              {/* Faraz */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-100 flex items-center gap-1.5">
+                    <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>फराझ (Faraz)</span>
+                  </span>
+                  <a href="tel:7208655227" className="text-amber-300 hover:text-amber-100 font-mono font-bold text-xs underline">
+                    +91 7208655227
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <a
+                    href="https://wa.me/917208655227?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%AB%E0%A4%B0%E0%A4%BE%E0%A4%9D%20%E0%A4%B8%E0%A4%B0%2C%20%E0%A4%AE%E0%A4%B9%E0%A4%BE%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%AA%E0%A4%BE%E0%A4%B0%20%E0%A4%A1%E0%A4%BF%E0%A4%9C%E0%A4%BF%E0%A4%9F%E0%A4%B2%20%E0%A4%B8%E0%A5%87%E0%A4%A4%E0%A5%82%20%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%B6%E0%A4%A8%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%A0%E0%A5%80%20%E0%A4%B8%E0%A4%82%E0%A4%AA%E0%A4%B0%E0%A5%8D%E0%A4%95"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-black transition"
+                  >
+                    {t.footerWhatsAppBtn}
+                  </a>
+                  <a
+                    href="tel:7208655227"
+                    className="flex-1 text-center py-1 rounded bg-amber-600 hover:bg-amber-500 text-amber-950 text-[10px] font-black transition"
+                  >
+                    {t.footerCallBtn}
+                  </a>
+                </div>
               </div>
             </div>
           </div>

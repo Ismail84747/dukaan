@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
-import { X, Search, Trash2, FileText, Star, AlertCircle, MessageSquare, Bell, Clock, Download, Phone, QrCode, LogOut, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Search,
+  Trash2,
+  FileText,
+  AlertCircle,
+  MessageSquare,
+  Clock,
+  Download,
+  Phone,
+  QrCode,
+  LogOut,
+  ShieldCheck,
+  Layers,
+  Loader2,
+  CheckCircle,
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Vendor, Language, OnboardingStage } from '../types';
 import { translations, districtsList } from '../translations';
-import { updateVendorStage, getVendorStage, deleteVendor } from '../db/indexedDB';
-import { ASSIGNED_PHONE_FORMATTED, getAssignedOfficer, getWhatsAppNotificationUrl, formatOfficerName } from '../utils/assignment';
+import { updateVendorStage, getVendorStage, deleteVendor, bulkUpdateVendorStages } from '../db/indexedDB';
+import { ASSIGNED_PHONE_FORMATTED, getAssignedOfficer, getOfficerPhoneFormatted, getWhatsAppNotificationUrl, formatOfficerName } from '../utils/assignment';
 
 interface VendorDirectoryModalProps {
   vendors: Vendor[];
@@ -67,10 +84,49 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
     },
   }[lang];
 
+  const bulkLabels = {
+    mr: {
+      selectedCount: (n: number) => `${n} दुकानदार निवडले`,
+      selectAll: 'सर्व निवडा',
+      clearSelection: 'निवड रद्द करा',
+      applyBulkStage: 'एकत्रित टप्पा बदला',
+      markAllCompleted: 'सर्व पूर्ण करा (Bulk Complete ✓)',
+      applying: 'अपडेट होत आहे...',
+      bulkPanelTitle: 'एकत्रित टप्पा व्यवस्थापन',
+      stageLabel: 'लक्ष्य टप्पा निवडा:',
+    },
+    hi: {
+      selectedCount: (n: number) => `${n} व्यापारी चुने गए`,
+      selectAll: 'सभी चुनें',
+      clearSelection: 'चयन रद्द करें',
+      applyBulkStage: 'एकत्रित चरण बदलें',
+      markAllCompleted: 'सभी पूर्ण करें (Bulk Complete ✓)',
+      applying: 'अपडेट हो रहा है...',
+      bulkPanelTitle: 'एकत्रित चरण प्रबंधन',
+      stageLabel: 'लक्ष्य चरण चुनें:',
+    },
+    en: {
+      selectedCount: (n: number) => `${n} merchants selected`,
+      selectAll: 'Select All',
+      clearSelection: 'Clear Selection',
+      applyBulkStage: 'Update Stage for All',
+      markAllCompleted: 'Bulk Complete ✓',
+      applying: 'Updating...',
+      bulkPanelTitle: 'Bulk Stage Management',
+      stageLabel: 'Target Stage:',
+    },
+  }[lang];
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+
+  // Bulk Selection State
+  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  const [bulkTargetStage, setBulkTargetStage] = useState<OnboardingStage>('doc_verification');
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
   const getCategoryPhoto = (category: string) => {
     switch (category) {
@@ -87,6 +143,10 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
         return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=150&q=80';
     }
   };
+
+  useEffect(() => {
+    onRefresh();
+  }, []);
 
   const filteredVendors = vendors.filter((v) => {
     const term = searchTerm.toLowerCase().trim();
@@ -110,6 +170,64 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
     return matchesSearch && matchesCategory && matchesDistrict && matchesStatus;
   });
 
+  const isAllSelected = filteredVendors.length > 0 && filteredVendors.every((v) => selectedVendorIds.includes(v.id));
+  const isSomeSelected = filteredVendors.some((v) => selectedVendorIds.includes(v.id)) && !isAllSelected;
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedVendorIds([]);
+    } else {
+      setSelectedVendorIds(filteredVendors.map((v) => v.id));
+    }
+  };
+
+  const handleToggleSelectVendor = (id: string) => {
+    setSelectedVendorIds((prev) =>
+      prev.includes(id) ? prev.filter((vId) => vId !== id) : [...prev, id]
+    );
+  };
+
+  const handleApplyBulkStage = async (stageOverride?: OnboardingStage) => {
+    if (selectedVendorIds.length === 0 || isBulkUpdating) return;
+    const stageToApply = stageOverride || bulkTargetStage;
+    setIsBulkUpdating(true);
+    setBulkNotice(null);
+
+    try {
+      await bulkUpdateVendorStages(selectedVendorIds, stageToApply);
+
+      if (stageToApply === 'completed') {
+        try {
+          confetti({
+            particleCount: 110,
+            spread: 85,
+            origin: { y: 0.6 },
+            colors: ['#ea580c', '#f59e0b', '#7c2d12', '#10b981'],
+          });
+        } catch {}
+      }
+
+      setBulkNotice(
+        lang === 'mr'
+          ? `✓ निवडलेल्या ${selectedVendorIds.length} दुकानांचा टप्पा यशस्वीरीत्या बदलला!`
+          : lang === 'hi'
+          ? `✓ चुने गए ${selectedVendorIds.length} दुकानों का चरण सफलतापूर्वक अपडेट किया गया!`
+          : `✓ Successfully updated stage for ${selectedVendorIds.length} vendors!`
+      );
+
+      setSelectedVendorIds([]);
+      onRefresh();
+
+      setTimeout(() => {
+        setBulkNotice(null);
+      }, 4000);
+    } catch (err) {
+      console.error('Failed to bulk update stage:', err);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   const handleStageChange = async (
     vendorId: string,
     newStage: OnboardingStage
@@ -126,6 +244,7 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
     if (window.confirm(t.confirmDelete)) {
       try {
         await deleteVendor(vendorId);
+        setSelectedVendorIds((prev) => prev.filter((id) => id !== vendorId));
         onRefresh();
       } catch (err) {
         console.error('Failed to delete vendor:', err);
@@ -157,7 +276,7 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
       `"${v.ownerName.replace(/"/g, '""')}"`,
       v.phone,
       v.category,
-      `"${v.district.replace(/"/g, '""')}"`,
+      `"${v.district}"`,
       `"${v.area.replace(/"/g, '""')}"`,
       v.pincode,
       `"${v.packageName.replace(/"/g, '""')}"`,
@@ -244,14 +363,14 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
 
         {/* Filters and Search Bar */}
         <div className="p-4 bg-[#FFFDF7] border-b border-amber-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Search Box */}
+          {/* Search Input */}
           <div className="relative">
             <Search className="w-4 h-4 text-amber-700 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              placeholder={t.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t.searchPlaceholder}
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF5EC] border border-amber-700/30 text-xs text-[#2B0E14] focus:outline-none focus:ring-2 focus:ring-[#EA580C] font-semibold"
             />
           </div>
@@ -299,6 +418,93 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
 
         {/* Vendors Table / List */}
         <div className="flex-1 overflow-y-auto p-4 bg-[#FAF5EC]">
+          {/* Bulk Notification Banner */}
+          {bulkNotice && (
+            <div className="mb-3 p-3 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-xs animate-in fade-in">
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{bulkNotice}</span>
+            </div>
+          )}
+
+          {/* Bulk Action Sticky Bar when items are selected */}
+          {selectedVendorIds.length > 0 && (
+            <div className="bg-gradient-to-r from-[#4A0E17] via-[#3B1C10] to-[#2B0E14] text-amber-100 p-3.5 sm:p-4 rounded-xl border-2 border-amber-400 shadow-xl flex flex-wrap items-center justify-between gap-3 mb-4 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center font-black shadow-sm shrink-0">
+                  <Layers className="w-5 h-5 text-amber-950" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-black text-amber-200 flex items-center gap-2">
+                    <span>{bulkLabels.selectedCount(selectedVendorIds.length)}</span>
+                    <span className="text-[10px] text-amber-300/80 font-normal">
+                      ({filteredVendors.length} पैकी)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-amber-300/90 mt-0.5">
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAll}
+                      className="hover:underline font-bold text-amber-300 cursor-pointer"
+                    >
+                      {isAllSelected ? bulkLabels.clearSelection : `${bulkLabels.selectAll} (${filteredVendors.length})`}
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedVendorIds([])}
+                      className="hover:underline text-rose-300 cursor-pointer"
+                    >
+                      {bulkLabels.clearSelection}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 bg-[#2B0E14] p-1 rounded-xl border border-amber-500/50">
+                  <span className="text-[11px] font-bold text-amber-200 pl-1.5 hidden sm:inline">
+                    {bulkLabels.stageLabel}
+                  </span>
+                  <select
+                    value={bulkTargetStage}
+                    onChange={(e) => setBulkTargetStage(e.target.value as OnboardingStage)}
+                    className="px-2.5 py-1 text-xs rounded-lg bg-[#4A0E17] text-amber-100 font-black border border-amber-400/40 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="submitted">१. अर्ज प्राप्त (Applied)</option>
+                    <option value="doc_verification">२. कागदपत्र पडताळणी (Doc Verify)</option>
+                    <option value="kit_preparation">३. डिजिटल किट तयारी (Kit Prep)</option>
+                    <option value="completed">४. ऑनबोर्डिंग पूर्ण ✓ (Completed)</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isBulkUpdating}
+                  onClick={() => handleApplyBulkStage()}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-[#EA580C] hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black text-xs flex items-center gap-1.5 shadow-sm border border-amber-300 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isBulkUpdating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Layers className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isBulkUpdating ? bulkLabels.applying : bulkLabels.applyBulkStage}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isBulkUpdating}
+                  onClick={() => handleApplyBulkStage('completed')}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md border border-emerald-300 transition cursor-pointer disabled:opacity-50"
+                  title="Mark all selected vendors as Completed"
+                >
+                  <CheckCircle className="w-3.5 h-3.5 text-white" />
+                  <span>{bulkLabels.markAllCompleted}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {filteredVendors.length === 0 ? (
             <div className="text-center py-12 text-[#7C2D12]">
               <AlertCircle className="w-10 h-10 mx-auto text-amber-600 mb-2" />
@@ -309,6 +515,19 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#4A0E17] text-amber-200 font-black border-b border-amber-800">
                   <tr>
+                    {/* Bulk Selection Checkbox Header */}
+                    <th className="p-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isSomeSelected;
+                        }}
+                        onChange={handleToggleSelectAll}
+                        className="w-4 h-4 rounded text-[#EA580C] accent-[#EA580C] focus:ring-[#EA580C] cursor-pointer"
+                        title={isAllSelected ? bulkLabels.clearSelection : bulkLabels.selectAll}
+                      />
+                    </th>
                     <th className="p-3">{t.colRegId}</th>
                     <th className="p-3">{t.colShop}</th>
                     <th className="p-3">{dirLabels.colOfficer}</th>
@@ -321,13 +540,31 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
                 <tbody className="divide-y divide-amber-200">
                   {filteredVendors.map((vendor) => {
                     const officer = vendor.assignedTo || getAssignedOfficer(vendor);
+                    const officerPhone = vendor.assignedPhone
+                      ? (vendor.assignedPhone.startsWith('+') ? vendor.assignedPhone : `+91 ${vendor.assignedPhone}`)
+                      : getOfficerPhoneFormatted(officer);
                     const whatsappOfficerUrl = getWhatsAppNotificationUrl(vendor, officer, lang);
+                    const isSelected = selectedVendorIds.includes(vendor.id);
 
                     return (
                       <tr
                         key={vendor.id}
-                        className="hover:bg-amber-100/50 transition-colors text-[#2B0E14]"
+                        className={`transition-colors text-[#2B0E14] ${
+                          isSelected
+                            ? 'bg-amber-100/90 font-medium border-l-4 border-l-[#EA580C]'
+                            : 'hover:bg-amber-100/50'
+                        }`}
                       >
+                        {/* Checkbox Cell */}
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectVendor(vendor.id)}
+                            className="w-4 h-4 rounded text-[#EA580C] accent-[#EA580C] focus:ring-[#EA580C] cursor-pointer"
+                          />
+                        </td>
+
                         {/* Reg ID */}
                         <td className="p-3 font-mono font-black text-[#EA580C]">
                           {vendor.regNumber}
@@ -362,7 +599,7 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
                             <span>{formatOfficerName(officer, lang)}</span>
                           </div>
                           <div className="text-[10px] text-[#7C2D12] font-mono font-bold mt-0.5">
-                            {ASSIGNED_PHONE_FORMATTED}
+                            {officerPhone}
                           </div>
                         </td>
 
@@ -447,62 +684,37 @@ export const VendorDirectoryModal: React.FC<VendorDirectoryModalProps> = ({
                               href={whatsappOfficerUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 transition-colors shadow-xs"
+                              className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-[#4A0E17] text-[11px] font-bold flex items-center gap-1 transition-colors shadow-xs border border-amber-400"
                               title={dirLabels.alertTitle(formatOfficerName(officer, lang))}
                             >
-                              <Bell className="w-3 h-3 text-amber-300 animate-pulse" />
+                              <MessageSquare className="w-3 h-3 text-emerald-800" />
                               <span className="hidden sm:inline">{dirLabels.alertBtn}</span>
                             </a>
 
-                            {/* View Receipt & Assignment */}
+                            {/* View Receipt and Officer Assignment */}
                             <button
-                              onClick={() =>
-                                onViewCertificate(vendor, 'receipt')
-                              }
-                              className="px-2 py-1 rounded bg-[#4A0E17] hover:bg-[#6B1D2F] text-amber-200 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                              onClick={() => onViewCertificate(vendor, 'receipt')}
+                              className="px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 text-[#4A0E17] text-[11px] font-bold flex items-center gap-1 transition-colors border border-amber-300 cursor-pointer"
                               title={dirLabels.receiptTitle}
                             >
-                              <FileText className="w-3 h-3 text-amber-400" />
+                              <FileText className="w-3 h-3 text-[#EA580C]" />
                               <span className="hidden sm:inline">{dirLabels.receiptBtn}</span>
                             </button>
 
-                            {/* View Digital Shop QR */}
-                            <button
-                              onClick={() => onViewCertificate(vendor, 'shoplink')}
-                              className="px-2 py-1 rounded bg-[#EA580C] hover:bg-[#D97706] text-amber-950 text-[11px] font-black flex items-center gap-1 transition-colors border border-amber-300"
-                              title={lang === 'mr' ? 'डिजिटल दुकान QR जनरेटर पहा' : 'View Digital Shop QR Generator'}
-                            >
-                              <QrCode className="w-3 h-3 text-amber-950" />
-                              <span className="hidden sm:inline">QR</span>
-                            </button>
-
-                            {/* View Standee */}
+                            {/* View 5-Star Standee */}
                             <button
                               onClick={() => onViewCertificate(vendor, 'standee')}
-                              className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-amber-950 text-[11px] font-bold flex items-center gap-1 transition-colors border border-amber-300"
+                              className="px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 text-[#4A0E17] text-[11px] font-bold flex items-center gap-1 transition-colors border border-amber-300 cursor-pointer"
                               title={dirLabels.standeeTitle}
                             >
-                              <Star className="w-3 h-3 fill-amber-950 text-amber-950" />
+                              <QrCode className="w-3 h-3 text-[#EA580C]" />
                               <span className="hidden sm:inline">{dirLabels.standeeBtn}</span>
                             </button>
 
-                            {/* WhatsApp Connect with Vendor */}
-                            <a
-                              href={`https://wa.me/91${vendor.phone}?text=${encodeURIComponent(
-                                dirLabels.waVendorText(vendor.ownerName, formatOfficerName(officer, lang))
-                              )}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1 rounded bg-emerald-700 text-white hover:bg-emerald-600 transition-colors"
-                              title={dirLabels.waVendorTitle}
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </a>
-
-                            {/* Delete */}
+                            {/* Delete Vendor */}
                             <button
                               onClick={() => handleDelete(vendor.id)}
-                              className="p-1 rounded bg-rose-100 text-rose-800 hover:bg-rose-200 transition-colors"
+                              className="p-1 rounded text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
                               title={t.btnDelete}
                             >
                               <Trash2 className="w-3.5 h-3.5" />

@@ -145,7 +145,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
     const cleanPass = adminPassInput.trim();
 
     // Flexible matching for admin credentials
-    const validIds = ['is', 'admin', 'admin name', 'is1590174', 'is1590174@gmail.com', 'ismail', 'faraz'];
+    const validIds = ['is', 'admin', 'admin name', 'is1590174', 'is1590174@gmail.com', 'ismail', 'faraz', '9137786506', '7208655227'];
     const isIdValid = validIds.includes(cleanId) || cleanId.startsWith('admin') || cleanId.startsWith('is');
     const validPasswords = ['123', 'password 123', 'password123', 'pass 123', 'admin 123', 'admin123', '1234'];
     const isPassValid = validPasswords.includes(cleanPass) || cleanPass.endsWith('123');
@@ -400,7 +400,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
   }[lang];
 
   const assignedOfficer = activeVendor?.assignedTo || 'Ismail';
-  const assignedPhone = activeVendor?.assignedPhone || '9137786506';
+  const assignedPhone = activeVendor?.assignedPhone || (assignedOfficer === 'Faraz' ? '7208655227' : '9137786506');
 
   const officerWhatsAppUrl = activeVendor
     ? `https://wa.me/91${assignedPhone}?text=${encodeURIComponent(
@@ -966,7 +966,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                   <div className="flex items-center gap-2 mt-0.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-700" />
                     <span className="font-extrabold text-sm text-[#4A0E17]">
-                      {assignedOfficer} • MahaVyapaar Setu Mitra
+                      {assignedOfficer} (+91 {assignedPhone}) • MahaVyapaar Setu Mitra
                     </span>
                   </div>
                   <p className="text-[11px] text-[#5C2B14] mt-0.5 font-medium">

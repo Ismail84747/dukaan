@@ -66,6 +66,11 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     fetchVendors();
+    // Auto-sync interval to pull new registrations from central server across all devices
+    const syncInterval = setInterval(() => {
+      fetchVendors();
+    }, 5000);
+    return () => clearInterval(syncInterval);
   }, []);
 
   const handleStopAudio = () => {

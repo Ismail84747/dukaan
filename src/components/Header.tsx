@@ -55,22 +55,31 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-3 sm:gap-5">
-          {/* Helpline with Ismail / Faraz */}
-          <a
-            href="tel:9137786506"
-            className="flex items-center gap-1.5 text-amber-300 font-bold hover:text-amber-200 transition-colors"
-            title="थेट संपर्क: इस्माईल / फराझ"
-          >
-            <PhoneCall className="w-3.5 h-3.5 text-[#F59E0B]" />
-            <span className="font-mono font-black">+91 9137786506</span>
-            <span className="hidden md:inline text-[11px] text-amber-200 font-normal">
-              {lang === 'mr'
-                ? '(इस्माईल / फराझ)'
-                : lang === 'hi'
-                ? '(इस्माईल / फ़राज़)'
-                : '(Ismail / Faraz)'}
-            </span>
-          </a>
+          {/* Helpline with Ismail & Faraz */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs">
+            <a
+              href="tel:9137786506"
+              className="flex items-center gap-1 text-amber-300 font-bold hover:text-amber-200 transition-colors bg-[#2A1608] px-2 py-1 rounded border border-amber-700/50"
+              title="थेट संपर्क: इस्माईल (+91 9137786506)"
+            >
+              <PhoneCall className="w-3 h-3 text-[#F59E0B]" />
+              <span className="font-mono font-black text-[11px] sm:text-xs">9137786506</span>
+              <span className="hidden lg:inline text-[10px] text-amber-200 font-normal">
+                {lang === 'mr' ? '(इस्माईल)' : lang === 'hi' ? '(इस्माईल)' : '(Ismail)'}
+              </span>
+            </a>
+            <a
+              href="tel:7208655227"
+              className="flex items-center gap-1 text-amber-300 font-bold hover:text-amber-200 transition-colors bg-[#2A1608] px-2 py-1 rounded border border-amber-700/50"
+              title="थेट संपर्क: फराझ (+91 7208655227)"
+            >
+              <PhoneCall className="w-3 h-3 text-emerald-400" />
+              <span className="font-mono font-black text-[11px] sm:text-xs">7208655227</span>
+              <span className="hidden lg:inline text-[10px] text-amber-200 font-normal">
+                {lang === 'mr' ? '(फराझ)' : lang === 'hi' ? '(फ़राज़)' : '(Faraz)'}
+              </span>
+            </a>
+          </div>
 
           {/* Accessibility Font Size Toggle (A- / A / A+) */}
           <div className="flex items-center gap-0.5 bg-[#2A1608] px-1.5 py-0.5 rounded border border-amber-700/50">

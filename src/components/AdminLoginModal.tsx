@@ -87,6 +87,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       'is1590174@gmail.com',
       'ismail',
       'faraz',
+      '9137786506',
+      '7208655227',
     ];
     const isIdValid = validIds.includes(cleanId) || cleanId.startsWith('admin') || cleanId.startsWith('is');
     const validPasswords = ['123', 'password 123', 'password123', 'pass 123', 'admin 123', 'admin123', '1234'];

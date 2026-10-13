@@ -1,9 +1,31 @@
 import { Vendor, Language } from '../types';
 
-export const ASSIGNED_PHONE = '9137786506';
-export const ASSIGNED_PHONE_FORMATTED = '+91 9137786506';
+export const ISMAIL_PHONE = '9137786506';
+export const ISMAIL_PHONE_FORMATTED = '+91 9137786506';
+
+export const FARAZ_PHONE = '7208655227';
+export const FARAZ_PHONE_FORMATTED = '+91 7208655227';
+
+export const ASSIGNED_PHONE = ISMAIL_PHONE;
+export const ASSIGNED_PHONE_FORMATTED = ISMAIL_PHONE_FORMATTED;
 
 export type AssignedOfficerName = 'Ismail' | 'Faraz';
+
+/**
+ * Returns mobile number for the specified officer
+ */
+export function getOfficerPhone(officer?: string): string {
+  if (!officer) return ISMAIL_PHONE;
+  return officer.toLowerCase().includes('faraz') ? FARAZ_PHONE : ISMAIL_PHONE;
+}
+
+/**
+ * Returns formatted mobile number (+91 ...) for the specified officer
+ */
+export function getOfficerPhoneFormatted(officer?: string): string {
+  if (!officer) return ISMAIL_PHONE_FORMATTED;
+  return officer.toLowerCase().includes('faraz') ? FARAZ_PHONE_FORMATTED : ISMAIL_PHONE_FORMATTED;
+}
 
 /**
  * Assigns Ismail or Faraz to a vendor deterministically
@@ -96,6 +118,7 @@ export function buildAssignmentSMSMessage(vendor: Vendor, officer: string = getA
  */
 export function buildVendorSMSReceipt(vendor: Vendor, officer: string = getAssignedOfficer(vendor), lang: Language = 'mr'): string {
   const officerName = formatOfficerName(officer, lang);
+  const officerPhone = getOfficerPhoneFormatted(officer);
   if (lang === 'hi') {
     return (
       `महाव्यापार डिजिटल सेतु रसीद:\n` +
@@ -103,8 +126,8 @@ export function buildVendorSMSReceipt(vendor: Vendor, officer: string = getAssig
       `दुकान: ${vendor.shopName}\n` +
       `मालिक: ${vendor.ownerName}\n` +
       `प्लान: ${vendor.packageName} (Rs.${vendor.packagePrice})\n` +
-      `नियुक्त अधिकारी: ${officerName} (+91 9137786506)\n` +
-      `विजिट: ४८ घंटे के भीतर\n` +
+      `नियुक्त अधिकारी: ${officerName} (${officerPhone})\n` +
+      `विजिट: २४ से ४८ घंटे के भीतर\n` +
       `सूचना: भुगतान केवल व्यवसाय मार्गदर्शन के लिए है।`
     );
   }
@@ -115,8 +138,8 @@ export function buildVendorSMSReceipt(vendor: Vendor, officer: string = getAssig
       `Shop: ${vendor.shopName}\n` +
       `Owner: ${vendor.ownerName}\n` +
       `Plan: ${vendor.packageName} (Rs.${vendor.packagePrice})\n` +
-      `Assigned Officer: ${officerName} (+91 9137786506)\n` +
-      `Visit: Within 48 hours\n` +
+      `Assigned Officer: ${officerName} (${officerPhone})\n` +
+      `Visit: Within 24-48 hours\n` +
       `Notice: Payment is strictly for business guidance.`
     );
   }
@@ -127,8 +150,8 @@ export function buildVendorSMSReceipt(vendor: Vendor, officer: string = getAssig
     `Shop: ${vendor.shopName}\n` +
     `Owner: ${vendor.ownerName}\n` +
     `Plan: ${vendor.packageName} (Rs.${vendor.packagePrice})\n` +
-    `Assigned Officer: ${officerName} (+91 9137786506)\n` +
-    `Visit: Within 48 hours\n` +
+    `Assigned Officer: ${officerName} (${officerPhone})\n` +
+    `Visit: Within 24-48 hours\n` +
     `Notice: Payment is strictly for business guidance.`
   );
 }
@@ -142,17 +165,23 @@ export function getVendorSMSReceiptUrl(vendor: Vendor, officer?: string, lang: L
 }
 
 /**
- * Returns the WhatsApp URL to directly notify 9137786506
+ * Returns the WhatsApp URL to directly notify assigned officer (Ismail: 9137786506 / Faraz: 7208655227)
  */
 export function getWhatsAppNotificationUrl(vendor: Vendor, officer?: string, lang: Language = 'mr'): string {
-  const text = buildAssignmentWhatsAppMessage(vendor, officer, lang);
-  return `https://api.whatsapp.com/send?phone=91${ASSIGNED_PHONE}&text=${encodeURIComponent(text)}`;
+  const targetOfficer = officer || vendor.assignedTo || getAssignedOfficer(vendor);
+  const phone = vendor.assignedPhone || getOfficerPhone(targetOfficer);
+  const cleanPhone = phone.replace(/\D/g, '');
+  const text = buildAssignmentWhatsAppMessage(vendor, targetOfficer, lang);
+  return `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(text)}`;
 }
 
 /**
- * Returns the SMS URL to directly notify 9137786506
+ * Returns the SMS URL to directly notify assigned officer (Ismail: 9137786506 / Faraz: 7208655227)
  */
 export function getSMSNotificationUrl(vendor: Vendor, officer?: string, lang: Language = 'mr'): string {
-  const text = buildAssignmentSMSMessage(vendor, officer, lang);
-  return `sms:+91${ASSIGNED_PHONE}?body=${encodeURIComponent(text)}`;
+  const targetOfficer = officer || vendor.assignedTo || getAssignedOfficer(vendor);
+  const phone = vendor.assignedPhone || getOfficerPhone(targetOfficer);
+  const cleanPhone = phone.replace(/\D/g, '');
+  const text = buildAssignmentSMSMessage(vendor, targetOfficer, lang);
+  return `sms:+91${cleanPhone}?body=${encodeURIComponent(text)}`;
 }

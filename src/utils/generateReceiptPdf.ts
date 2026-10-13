@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Vendor, Language } from '../types';
-import { getAssignedOfficer, ASSIGNED_PHONE_FORMATTED, formatOfficerName } from './assignment';
+import { getAssignedOfficer, getOfficerPhoneFormatted, formatOfficerName } from './assignment';
 import { generateQRCodeDataURL, getVendorShopUrl } from './qrCode';
 
 /**
@@ -26,6 +26,9 @@ export const generateReceiptPDF = async (vendor: Vendor, lang: Language = 'mr'):
 
   const assignedOfficer = vendor.assignedTo || getAssignedOfficer(vendor);
   const officerName = formatOfficerName(assignedOfficer, lang);
+  const officerPhone = vendor.assignedPhone
+    ? (vendor.assignedPhone.startsWith('+') ? vendor.assignedPhone : `+91 ${vendor.assignedPhone}`)
+    : getOfficerPhoneFormatted(assignedOfficer);
   const formattedDate = new Date(vendor.createdAt || Date.now()).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -277,7 +280,7 @@ export const generateReceiptPDF = async (vendor: Vendor, lang: Language = 'mr'):
 
   ctx.fillStyle = '#78350F';
   ctx.font = `700 ${8.5 * scale}px "Arial", sans-serif`;
-  ctx.fillText(`थेट संपर्क: ${ASSIGNED_PHONE_FORMATTED} • २४ तासांत ऑन-साइट पडताळणी व ५-स्टार रिव्ह्यू स्टँडी वाटप`, metaBoxX + 10 * scale, curY + 25 * scale);
+  ctx.fillText(`थेट संपर्क: ${officerPhone} • २४ तासांत ऑन-साइट पडताळणी व ५-स्टार रिव्ह्यू स्टँडी वाटप`, metaBoxX + 10 * scale, curY + 25 * scale);
 
   ctx.fillStyle = '#047857';
   ctx.font = `800 ${8.5 * scale}px "Arial", sans-serif`;

@@ -1078,7 +1078,7 @@ export const KitVideoTutorials: React.FC<KitVideoTutorialsProps> = ({ lang, onOp
                     </div>
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-[#7C2D12] font-bold">नियुक्त प्रतिनिधी:</span>
-                      <span className="font-bold text-[#4A0E17]">इस्माईल (9137786506)</span>
+                      <span className="font-bold text-[#4A0E17]">इस्माईल (9137786506) / फराझ (7208655227)</span>
                     </div>
                   </div>
 

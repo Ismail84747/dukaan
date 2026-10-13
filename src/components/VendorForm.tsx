@@ -174,10 +174,10 @@ export const VendorForm: React.FC<VendorFormProps> = ({
             <IndianFlag size="xs" />
             <span>
               {lang === 'mr'
-                ? 'अधिकृत प्रायव्हेट लिमिटेड नोंदणी • फील्ड ऑफिसर: ९१३७७८६५०६'
+                ? 'अधिकृत प्रायव्हेट लिमिटेड नोंदणी • फील्ड ऑफिसर: इस्माईल ९१३७७८६५०६ / फराझ ७२०८६५५२२७'
                 : lang === 'hi'
-                ? 'आधिकारिक प्राइवेट लिमिटेड पंजीकरण • फील्ड ऑफिसर: ९१३७७८६५०६'
-                : 'Official Private Limited Registration • Field Officer: +91 9137786506'}
+                ? 'आधिकारिक प्राइवेट लिमिटेड पंजीकरण • फील्ड ऑफिसर: इस्माईल ९१३७७८६५०६ / फ़राज़ ७२०८६५५२२७'
+                : 'Official Private Limited Registration • Field Officers: Ismail +91 9137786506 | Faraz +91 7208655227'}
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#4A0E17] tracking-tight font-heading">

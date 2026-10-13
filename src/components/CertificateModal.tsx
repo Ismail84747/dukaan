@@ -8,8 +8,8 @@ import { IndianFlag } from './IndianFlag';
 import { DigitalShopQRGenerator } from './DigitalShopQRGenerator';
 import { generateReceiptPDF } from '../utils/generateReceiptPdf';
 import {
-  ASSIGNED_PHONE_FORMATTED,
   getAssignedOfficer,
+  getOfficerPhoneFormatted,
   getWhatsAppNotificationUrl,
   getSMSNotificationUrl,
   getVendorSMSReceiptUrl,
@@ -48,7 +48,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const [pdfSuccess, setPdfSuccess] = useState(false);
 
   const assignedOfficer = vendor.assignedTo || getAssignedOfficer(vendor);
-  const assignedPhone = ASSIGNED_PHONE_FORMATTED;
+  const assignedPhone = vendor.assignedPhone
+    ? (vendor.assignedPhone.startsWith('+') ? vendor.assignedPhone : `+91 ${vendor.assignedPhone}`)
+    : getOfficerPhoneFormatted(assignedOfficer);
 
   const handlePrint = () => {
     window.print();
@@ -91,7 +93,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       notified: '✓ सूचना पाठवली',
       smsVendor: 'मला (दुकानदाराला) SMS पाठवा',
       smsOfficer: `अधिकारी (${assignedOfficer}) यांना SMS`,
-      whatsappOfficer: `व्हॉट्सॲपवर पाठवा (WhatsApp 9137786506)`,
+      whatsappOfficer: `व्हॉट्सॲपवर पाठवा (WhatsApp ${assignedPhone})`,
       copied: 'कॉपी झाले!',
       copySms: 'संपूर्ण SMS कॉपी करा',
       previewTitle: 'पाठवल्या जाणाऱ्या मेसेजचा नमुना (Message Preview)',
@@ -121,7 +123,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       notified: '✓ सूचना भेजी गई',
       smsVendor: 'मुझे (दुकानदार को) SMS भेजें',
       smsOfficer: `अधिकारी (${assignedOfficer}) को SMS`,
-      whatsappOfficer: `व्हाट्सएप पर भेजें (WhatsApp 9137786506)`,
+      whatsappOfficer: `व्हाट्सएप पर भेजें (WhatsApp ${assignedPhone})`,
       copied: 'कॉपी हुआ!',
       copySms: 'पूरा SMS कॉपी करें',
       previewTitle: 'भेजे जाने वाले संदेश का प्रारूप (Message Preview)',
@@ -151,7 +153,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       notified: '✓ Alert Sent',
       smsVendor: 'Send SMS to Me (Merchant)',
       smsOfficer: `Send SMS to Officer (${assignedOfficer})`,
-      whatsappOfficer: `Send on WhatsApp (9137786506)`,
+      whatsappOfficer: `Send on WhatsApp (${assignedPhone})`,
       copied: 'Copied!',
       copySms: 'Copy Full SMS Text',
       previewTitle: 'Message Preview Template',

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Vendor, Language } from '../types';
-import { getAssignedOfficer, ASSIGNED_PHONE_FORMATTED, formatOfficerName } from './assignment';
+import { getAssignedOfficer, getOfficerPhoneFormatted, formatOfficerName } from './assignment';
 import { generateQRCodeDataURL, getVendorShopUrl } from './qrCode';
 
 /**
@@ -25,6 +25,9 @@ export const generateCompletionPdf = async (vendor: Vendor, lang: Language = 'mr
 
   const assignedOfficer = vendor.assignedTo || getAssignedOfficer(vendor);
   const officerName = formatOfficerName(assignedOfficer, lang);
+  const officerPhone = vendor.assignedPhone
+    ? (vendor.assignedPhone.startsWith('+') ? vendor.assignedPhone : `+91 ${vendor.assignedPhone}`)
+    : getOfficerPhoneFormatted(assignedOfficer);
   const formattedDate = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -406,7 +409,7 @@ export const generateCompletionPdf = async (vendor: Vendor, lang: Language = 'mr
 
   ctx.fillStyle = '#78350F';
   ctx.font = `700 ${7.5 * scale}px "Noto Sans Devanagari", "Tiro Devanagari Marathi", "Plus Jakarta Sans", "Arial", sans-serif`;
-  ctx.fillText(`नियुक्त सेतू मित्र: ${officerName} (${ASSIGNED_PHONE_FORMATTED})`, rightX, authBoxY + 16 * scale);
+  ctx.fillText(`नियुक्त सेतू मित्र: ${officerName} (${officerPhone})`, rightX, authBoxY + 16 * scale);
 
   ctx.fillStyle = '#1E3A8A';
   ctx.font = `italic 700 ${11 * scale}px "Brush Script MT", "Caveat", cursive, sans-serif`;

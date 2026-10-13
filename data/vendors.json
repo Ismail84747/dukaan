@@ -1,0 +1,118 @@
+[
+  {
+    "id": "vendor_1791888144803_v6crf",
+    "regNumber": "MV-MH-2025-2768",
+    "shopName": "श्री गणेश इलेक्ट्रॉनिक व मोबाईल रिपेअरिंग",
+    "ownerName": "अनिकेत गणेश जोशी",
+    "phone": "9823098765",
+    "category": "retail",
+    "district": "नाशिक (Nashik)",
+    "area": "कॉलेज रोड",
+    "pincode": "422005",
+    "packageId": "growth",
+    "packageName": "प्रगती सेतू (Growth)",
+    "packagePrice": 79,
+    "status": "approved",
+    "stage": "completed",
+    "stageHistory": [
+      {
+        "stage": "submitted",
+        "timestamp": "2026-10-13T10:42:24.803Z",
+        "note": "नोंदणी अर्ज पोर्टलवर प्राप्त झाला व नोंदणी क्रमांक जारी केला गेला."
+      },
+      {
+        "stage": "completed",
+        "timestamp": "2026-10-13T10:42:34.162Z",
+        "note": "डिजिटल किट वितरण व Google Business ऑनबोर्डिंग १००% यशस्वीरीत्या पूर्ण झाले."
+      }
+    ],
+    "assignedTo": "Ismail",
+    "assignedPhone": "9137786506",
+    "createdAt": "2026-10-13T10:42:24.803Z",
+    "verifiedAt": "2026-10-13T10:49:26.172Z"
+  },
+  {
+    "id": "vendor_sample_1",
+    "regNumber": "MV-MH-2025-1082",
+    "shopName": "माऊली किराणा व जनरल स्टोअर्स",
+    "ownerName": "दत्तात्रय रामभाऊ कदम",
+    "phone": "9822456789",
+    "category": "kirana",
+    "district": "पुणे (Pune)",
+    "area": "शनिवार पेठ, बाजीराव रोड",
+    "pincode": "411030",
+    "packageId": "growth",
+    "packageName": "प्रगती सेतू (Growth)",
+    "packagePrice": 79,
+    "status": "approved",
+    "stage": "completed",
+    "stageHistory": [
+      {
+        "stage": "submitted",
+        "timestamp": "2026-10-13T06:42:17.116Z",
+        "note": "नोंदणी अर्ज प्राप्त झाला."
+      },
+      {
+        "stage": "doc_verification",
+        "timestamp": "2026-10-13T08:42:17.116Z",
+        "note": "कागदपत्र पडताळणी पूर्ण."
+      },
+      {
+        "stage": "kit_preparation",
+        "timestamp": "2026-10-13T10:12:17.116Z",
+        "note": "Google Maps पिन व ५★ स्टँडी तयार होत आहे."
+      },
+      {
+        "stage": "completed",
+        "timestamp": "2026-10-13T10:49:26.172Z",
+        "note": "एकत्रित ऑनबोर्डिंग १००% पूर्ण केले."
+      }
+    ],
+    "assignedTo": "Ismail",
+    "assignedPhone": "9137786506",
+    "createdAt": "2026-10-13T06:42:17.116Z",
+    "verifiedAt": "2026-10-13T10:49:26.172Z"
+  },
+  {
+    "id": "vendor_sample_2",
+    "regNumber": "MV-MH-2025-2144",
+    "shopName": "जय भवानी वडापाव व स्नॅक्स सेंटर",
+    "ownerName": "सचिन विठ्ठल मोरे",
+    "phone": "9765123456",
+    "category": "food",
+    "district": "मुंबई उपनगर (Mumbai Sub)",
+    "area": "स्टेशन रोड, बोरिवली पश्चिम",
+    "pincode": "400092",
+    "packageId": "starter",
+    "packageName": "आरंभ सेतू (Starter)",
+    "packagePrice": 29,
+    "status": "approved",
+    "stage": "completed",
+    "stageHistory": [
+      {
+        "stage": "submitted",
+        "timestamp": "2026-10-12T10:42:17.116Z",
+        "note": "नोंदणी अर्ज प्राप्त झाला."
+      },
+      {
+        "stage": "doc_verification",
+        "timestamp": "2026-10-12T16:42:17.116Z",
+        "note": "कागदपत्र पडताळणी पूर्ण."
+      },
+      {
+        "stage": "kit_preparation",
+        "timestamp": "2026-10-13T02:42:17.116Z",
+        "note": "QR स्टँडी व मॅप्स पिन तयार."
+      },
+      {
+        "stage": "completed",
+        "timestamp": "2026-10-13T08:42:17.116Z",
+        "note": "ऑनबोर्डिंग १००% पूर्ण व किट वाटप संपन्न."
+      }
+    ],
+    "assignedTo": "Faraz",
+    "assignedPhone": "7208655227",
+    "createdAt": "2026-10-12T10:42:17.116Z",
+    "verifiedAt": "2026-10-13T08:42:17.116Z"
+  }
+]

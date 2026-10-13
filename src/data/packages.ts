@@ -22,19 +22,19 @@ export const growthPackages: GrowthPackage[] = [
         'Google Maps वर दुकानाचे अधिकृत लोकेशन पिन',
         'डिजिटल UPI पेमेंट QR कोड स्टँडी',
         'महाव्यापार अधिकृत डिजिटल दुकान पावती व प्रतिनिधी वाटप',
-        'मराठी व हिंदी सेतू ग्राहक सहाय्यता (९१३७७८६५०६)',
+        'मराठी व हिंदी सेतू ग्राहक सहाय्यता (९१३७७८६५०६ / ७२०८६५५२२७)',
       ],
       hi: [
         'Google Maps पर दुकान का अधिकृत लोकेशन पिन',
         'डिजिटल UPI पेमेंट QR कोड स्टेंडी',
         'महाव्यापार अधिकृत डिजिटल दुकान रसीद व प्रतिनिधि आवंटन',
-        'हिंदी व अंग्रेजी सेतु ग्राहक सहायता (९१३७७८६५०६)',
+        'हिंदी व अंग्रेजी सेतु ग्राहक सहायता (९१३७७८६५०६ / ७२०८६५५२२७)',
       ],
       en: [
         'Google Maps verified location pin',
         'Digital UPI payment QR code standee',
         'Official MahaVyapaar Onboarding Receipt & Officer Assignment',
-        'Field officer & helpline support (9137786506)',
+        'Field officer & helpline support (9137786506 / 7208655227)',
       ],
     },
     audioText: {

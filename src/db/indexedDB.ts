@@ -1,22 +1,18 @@
 import { Vendor, OnboardingStage } from '../types';
 
-const DB_NAME = 'MahaVyapaarDB';
-const DB_VERSION = 2; // Incremented to 2 to ensure onupgradeneeded triggers on existing version 1 DBs
-const STORE_NAME = 'vendors';
 const LOCAL_STORAGE_KEY = 'mahavypaar_vendors_cache';
+const DB_NAME = 'mahavypaar_db';
+const DB_VERSION = 3;
+const STORE_NAME = 'vendors';
 
-// Known legacy demo vendor identifiers
-const DEMO_PHONES = new Set(['9822104523', '9423558812', '9766432190', '9158334421', '9637890123']);
-
-export const isDemoVendor = (v: any): boolean => {
+// Helper to identify demo vendors that should not be shown
+const isDemoVendor = (v: any): boolean => {
   if (!v) return true;
-  if (v.id && String(v.id).startsWith('demo')) return true;
-  if (v.phone && DEMO_PHONES.has(String(v.phone).trim())) return true;
   if (v.isDemo) return true;
   return false;
 };
 
-// Helper to get local backup
+// Local storage backup helpers
 const getLocalBackup = (): Vendor[] => {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -29,7 +25,6 @@ const getLocalBackup = (): Vendor[] => {
   }
 };
 
-// Helper to set local backup
 const setLocalBackup = (vendors: Vendor[]): void => {
   try {
     const clean = vendors.filter((v) => !isDemoVendor(v));
@@ -39,6 +34,7 @@ const setLocalBackup = (vendors: Vendor[]): void => {
   }
 };
 
+// IndexedDB initialization for offline fallback
 export const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
@@ -46,95 +42,60 @@ export const initDB = (): Promise<IDBDatabase> => {
       return;
     }
 
-    const openRequest = (version?: number) => {
-      const request = version ? indexedDB.open(DB_NAME, version) : indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = () => reject(request.error);
+    request.onerror = () => reject(request.error);
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-          store.createIndex('regNumber', 'regNumber', { unique: true });
-          store.createIndex('category', 'category', { unique: false });
-          store.createIndex('district', 'district', { unique: false });
-          store.createIndex('status', 'status', { unique: false });
-          store.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-      };
-
-      request.onsuccess = () => {
-        const db = request.result;
-
-        // If the database was already created in an earlier session without the vendors store:
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const nextVersion = (db.version || 1) + 1;
-          db.close();
-          const upgradeReq = indexedDB.open(DB_NAME, nextVersion);
-          upgradeReq.onupgradeneeded = (ev) => {
-            const upgradedDb = (ev.target as IDBOpenDBRequest).result;
-            if (!upgradedDb.objectStoreNames.contains(STORE_NAME)) {
-              const store = upgradedDb.createObjectStore(STORE_NAME, { keyPath: 'id' });
-              store.createIndex('regNumber', 'regNumber', { unique: true });
-              store.createIndex('category', 'category', { unique: false });
-              store.createIndex('district', 'district', { unique: false });
-              store.createIndex('status', 'status', { unique: false });
-              store.createIndex('createdAt', 'createdAt', { unique: false });
-            }
-          };
-          upgradeReq.onsuccess = () => resolve(upgradeReq.result);
-          upgradeReq.onerror = () => reject(upgradeReq.error);
-          return;
-        }
-
-        db.onversionchange = () => {
-          db.close();
-        };
-
-        resolve(db);
-      };
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        store.createIndex('regNumber', 'regNumber', { unique: true });
+        store.createIndex('category', 'category', { unique: false });
+        store.createIndex('district', 'district', { unique: false });
+        store.createIndex('status', 'status', { unique: false });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
     };
 
-    openRequest();
+    request.onsuccess = () => resolve(request.result);
   });
 };
 
+/**
+ * Fetches all vendors from the central shared server database.
+ * This ensures that vendors registered from any mobile, tablet, or PC
+ * are immediately visible to the admin on any device!
+ */
 export const getAllVendors = async (): Promise<Vendor[]> => {
-  purgeLegacyDemoVendors();
   try {
-    const db = await initDB();
-    return new Promise((resolve) => {
+    const res = await fetch('/api/vendors');
+    if (res.ok) {
+      const serverVendors: Vendor[] = await res.json();
+      const cleaned = serverVendors.filter((v) => !isDemoVendor(v));
+      cleaned.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setLocalBackup(cleaned);
+
+      // Async cache update to IndexedDB
       try {
-        const tx = db.transaction(STORE_NAME, 'readonly');
+        const db = await initDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        const request = store.getAll();
+        for (const v of cleaned) {
+          store.put(v);
+        }
+      } catch {}
 
-        request.onsuccess = () => {
-          const rawResults = (request.result as Vendor[]) || [];
-          const results = rawResults.filter((v) => !isDemoVendor(v));
-          results.sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setLocalBackup(results);
-          resolve(results);
-        };
-
-        request.onerror = () => {
-          console.warn('IDB store.getAll error, using fallback:', request.error);
-          const fallback = getLocalBackup().filter((v) => !isDemoVendor(v));
-          resolve(fallback);
-        };
-      } catch (txErr) {
-        console.warn('IDB transaction error, using fallback:', txErr);
-        const fallback = getLocalBackup().filter((v) => !isDemoVendor(v));
-        resolve(fallback);
-      }
-    });
+      return cleaned;
+    }
   } catch (err) {
-    console.warn('IDB init error in getAllVendors, using fallback:', err);
-    return getLocalBackup().filter((v) => !isDemoVendor(v));
+    console.warn('Notice: Server fetch failed, using local offline cache:', err);
   }
+
+  // Fallback to local cache if offline
+  return getLocalBackup().filter((v) => !isDemoVendor(v));
 };
 
 export const getVendorStage = (v: Vendor): OnboardingStage => {
@@ -144,13 +105,40 @@ export const getVendorStage = (v: Vendor): OnboardingStage => {
   return 'doc_verification';
 };
 
+/**
+ * Registers a new vendor by saving to the central shared server database.
+ */
 export const addVendor = async (
   vendorData: Omit<Vendor, 'id' | 'regNumber' | 'status' | 'createdAt'>
 ): Promise<Vendor> => {
+  try {
+    const res = await fetch('/api/vendors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vendorData),
+    });
+
+    if (res.ok) {
+      const createdVendor: Vendor = await res.json();
+      const current = getLocalBackup();
+      setLocalBackup([createdVendor, ...current.filter((v) => v.id !== createdVendor.id)]);
+
+      try {
+        const db = await initDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(createdVendor);
+      } catch {}
+
+      return createdVendor;
+    }
+  } catch (err) {
+    console.warn('Notice: Server registration endpoint error, falling back to local creation:', err);
+  }
+
+  // Fallback offline creation if network is severed
   const id = 'v_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
   const serial = Math.floor(1000 + Math.random() * 9000);
   const regNumber = `MH-SETU-${new Date().getFullYear()}-${serial}`;
-
   const officer = (vendorData.phone || id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 2 === 0 ? 'Ismail' : 'Faraz';
   const now = new Date().toISOString();
 
@@ -169,51 +157,56 @@ export const addVendor = async (
       {
         stage: 'doc_verification',
         timestamp: now,
-        note: `कागदपत्र पडताळणी प्रक्रियेत - नियुक्त डिजिटल मित्र: ${officer} (+91 9137786506)`,
+        note: `कागदपत्र पडताळणी प्रक्रियेत - नियुक्त डिजिटल मित्र: ${officer} (${officer === 'Faraz' ? '+91 7208655227' : '+91 9137786506'})`,
       },
     ],
     assignedTo: officer,
-    assignedPhone: '9137786506',
+    assignedPhone: officer === 'Faraz' ? '7208655227' : '9137786506',
     createdAt: now,
     verifiedAt: undefined,
   };
 
-  // Update backup first
   const currentBackup = getLocalBackup();
   setLocalBackup([newVendor, ...currentBackup.filter((v) => v.id !== newVendor.id)]);
-
-  try {
-    const db = await initDB();
-    return new Promise((resolve) => {
-      try {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.add(newVendor);
-
-        request.onsuccess = () => resolve(newVendor);
-        request.onerror = () => {
-          console.warn('IDB store.add error, resolved with local backup:', request.error);
-          resolve(newVendor);
-        };
-      } catch (txErr) {
-        console.warn('IDB tx error in addVendor, resolved with local backup:', txErr);
-        resolve(newVendor);
-      }
-    });
-  } catch (err) {
-    console.warn('IDB init error in addVendor, using local backup:', err);
-    return newVendor;
-  }
+  return newVendor;
 };
 
+/**
+ * Updates vendor milestone stage on the central server database.
+ */
 export const updateVendorStage = async (
   id: string,
   stage: OnboardingStage,
   customNote?: string
 ): Promise<Vendor | null> => {
+  try {
+    const res = await fetch(`/api/vendors/${encodeURIComponent(id)}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, note: customNote }),
+    });
+
+    if (res.ok) {
+      const updated: Vendor = await res.json();
+      const current = getLocalBackup();
+      setLocalBackup(current.map((v) => (v.id === id ? updated : v)));
+
+      try {
+        const db = await initDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(updated);
+      } catch {}
+
+      return updated;
+    }
+  } catch (err) {
+    console.warn('Notice: Server stage update error, applying locally:', err);
+  }
+
+  // Local fallback
+  const now = new Date().toISOString();
   const currentBackup = getLocalBackup();
   let updatedVendor: Vendor | null = null;
-  const now = new Date().toISOString();
 
   const stageDefaultNotes: Record<OnboardingStage, string> = {
     submitted: 'नोंदणी अर्ज पोर्टलवर यशस्वीरीत्या प्राप्त झाला.',
@@ -256,55 +249,58 @@ export const updateVendorStage = async (
   });
 
   setLocalBackup(updatedBackup);
-
-  try {
-    const db = await initDB();
-    return new Promise((resolve) => {
-      try {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const getReq = store.get(id);
-
-        getReq.onsuccess = () => {
-          const vendor = getReq.result as Vendor;
-          if (!vendor) {
-            resolve(updatedVendor);
-            return;
-          }
-          const history = vendor.stageHistory ? [...vendor.stageHistory] : [
-            { stage: 'submitted' as OnboardingStage, timestamp: vendor.createdAt, note: 'नोंदणी अर्ज प्राप्त.' },
-          ];
-          if (!history.some((h) => h.stage === stage)) {
-            history.push({
-              stage,
-              timestamp: now,
-              note: customNote || stageDefaultNotes[stage],
-            });
-          }
-          vendor.stage = stage;
-          vendor.status = statusMap[stage];
-          vendor.stageHistory = history;
-          if (stage === 'completed' && !vendor.verifiedAt) {
-            vendor.verifiedAt = now;
-          }
-          const updateReq = store.put(vendor);
-          updateReq.onsuccess = () => resolve(vendor);
-          updateReq.onerror = () => resolve(updatedVendor);
-        };
-        getReq.onerror = () => resolve(updatedVendor);
-      } catch {
-        resolve(updatedVendor);
-      }
-    });
-  } catch (err) {
-    console.warn('IDB updateVendorStage error:', err);
-    return updatedVendor;
-  }
+  return updatedVendor;
 };
 
+/**
+ * Updates multiple vendors simultaneously on the central server database.
+ */
+export const bulkUpdateVendorStages = async (
+  ids: string[],
+  stage: OnboardingStage,
+  customNote?: string
+): Promise<boolean> => {
+  if (!ids || ids.length === 0) return false;
+
+  try {
+    const res = await fetch('/api/vendors/bulk/stage', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, stage, note: customNote }),
+    });
+
+    if (res.ok) {
+      // Re-fetch all vendors to refresh cache
+      await getAllVendors();
+      return true;
+    }
+  } catch (err) {
+    console.warn('Notice: Server bulk update error, applying fallback:', err);
+  }
+
+  // Fallback sequential update
+  for (const id of ids) {
+    await updateVendorStage(id, stage, customNote);
+  }
+  return true;
+};
+
+/**
+ * Searches for a vendor by phone number or registration number on the central server database.
+ */
 export const searchVendorByQuery = async (query: string): Promise<Vendor | null> => {
   const clean = query.trim().toLowerCase();
   if (!clean) return null;
+
+  try {
+    const res = await fetch(`/api/vendors/${encodeURIComponent(clean)}`);
+    if (res.ok) {
+      const found: Vendor = await res.json();
+      return found;
+    }
+  } catch {}
+
+  // Fallback to searching all vendors
   const vendors = await getAllVendors();
   return (
     vendors.find(
@@ -320,7 +316,6 @@ export const updateVendorStatus = async (
   id: string,
   status: Vendor['status']
 ): Promise<void> => {
-  // Update local backup
   const currentBackup = getLocalBackup();
   const updatedBackup = currentBackup.map((v) => {
     if (v.id === id) {
@@ -333,64 +328,17 @@ export const updateVendorStatus = async (
     return v;
   });
   setLocalBackup(updatedBackup);
-
-  try {
-    const db = await initDB();
-    return new Promise((resolve) => {
-      try {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const getReq = store.get(id);
-
-        getReq.onsuccess = () => {
-          const vendor = getReq.result as Vendor;
-          if (!vendor) {
-            resolve();
-            return;
-          }
-          vendor.status = status;
-          if (status === 'approved' && !vendor.verifiedAt) {
-            vendor.verifiedAt = new Date().toISOString();
-          }
-          const updateReq = store.put(vendor);
-          updateReq.onsuccess = () => resolve();
-          updateReq.onerror = () => resolve();
-        };
-        getReq.onerror = () => resolve();
-      } catch {
-        resolve();
-      }
-    });
-  } catch (err) {
-    console.warn('IDB updateVendorStatus error:', err);
-  }
 };
 
 export const deleteVendor = async (id: string): Promise<void> => {
-  // Update local backup
+  try {
+    await fetch(`/api/vendors/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  } catch {}
+
   const currentBackup = getLocalBackup();
   setLocalBackup(currentBackup.filter((v) => v.id !== id));
-
-  try {
-    const db = await initDB();
-    return new Promise((resolve) => {
-      try {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.delete(id);
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => resolve();
-      } catch {
-        resolve();
-      }
-    });
-  } catch (err) {
-    console.warn('IDB deleteVendor error:', err);
-  }
 };
 
-// Purge any legacy demo vendors that might be cached in user's browser
 export const purgeLegacyDemoVendors = async (): Promise<void> => {
   try {
     const rawBackup = getLocalBackup();
@@ -398,23 +346,5 @@ export const purgeLegacyDemoVendors = async (): Promise<void> => {
     if (cleanedBackup.length !== rawBackup.length) {
       setLocalBackup(cleanedBackup);
     }
-
-    const db = await initDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      const records = (request.result as Vendor[]) || [];
-      for (const rec of records) {
-        if (isDemoVendor(rec)) {
-          store.delete(rec.id);
-        }
-      }
-    };
-  } catch (e) {
-    console.warn('Notice while checking legacy demo records:', e);
-  }
+  } catch {}
 };
-
-
